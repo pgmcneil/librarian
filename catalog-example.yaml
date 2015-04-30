@@ -1,0 +1,16 @@
+# Basic layout is the following
+#
+# Be sure to place any regex inside _single_ quotes
+#   Otherwise you'll make yaml barf
+#
+# <id>:
+#     target: <target folder>
+#     regex: <regular expression to match>
+
+worddoc:
+  target: 'Documents'
+  regex: '.+\.[doc|docx]'
+
+taxes:
+  target: 'taxes'
+  regex: '.*taxes.+\.[xlsx|xls]'
