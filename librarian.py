@@ -54,11 +54,13 @@ def load(loadfile):
 def scanandcopy(dir, catalog, dest, scandirs=False):
     for root, dirs, files in os.walk(dir):
         for f in files:
-            if compare(f, catalog):
+            target = compare(f, catalog)
+            if target:
+                abs_dest = os.path.join(dest, target, f)
                 if DRYRUN:
-                    print("Matched {file} copying to {dest}".format(file=f, dest=os.path.join(dest, f)))
+                    print("Matched {file} copying to {dest}".format(file=f, dest=abs_dest))
                 else:
-                    shutil.copy(os.path.join(root, f), os.path.join(dest, f))
+                    shutil.copy(os.path.join(root, f), abs_dest)
 
 def main():
     global DRYRUN
