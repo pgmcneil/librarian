@@ -20,21 +20,39 @@ DRYRUN = False
 # End globals
 
 
+def fillgroups(name, groups):
+    '''Does a regex group substitution based on the regex groups'''
+    for i in range(0, len(groups)):
+        name = re.sub(r'\\{i}'.format(i=i + 1), groups[i], name)
+    return name
+
+
 def compare(name, catalog):
+    '''Attempt to find the string in catalog'''
     for c in catalog.keys():
         item = catalog[c]
         try:
+            t = item['target']
+            # Support for multiple regex for item
             if isinstance(item['regex'], list):
                 for r in item['regex']:
-                    if re.match(r, name, re.IGNORECASE):
-                        return item['title']
+                    # See if we have a match
+                    m = re.match(r, name, re.IGNORECASE)
+                    if m:
+                        # Go do a regex replace on the target string
+                        t = fillgroups(t, m.groups())
+                        return t
             elif isinstance(item['regex'], str):
-                if re.match(item['regex'], name, re.IGNORECASE):
-                    return item['target']
+                # See if we have a match
+                m = re.match(item['regex'], name, re.IGNORECASE)
+                if m:
+                    # Go do a regex replace on the target string
+                    t = fillgroups(t, m.groups())
+                    return t
             else:
                 raise TypeError("Needs to be a string or an array")
         except:
-            raise KeyError("Malformed object in catalog: {id}".format(id=c))
+            raise Exception("Error processing item in catalog: {id}".format(id=c))
     return None
 
 
