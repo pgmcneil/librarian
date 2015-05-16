@@ -6,6 +6,7 @@ Usage:
 Options:
     --catalog=<catalog>     Catalog file [Default: catalog.yaml]
     --dryrun                Don't actually do anything
+    --delete                Delete the original after copying
     -h --help               Show help
 """
 
@@ -56,6 +57,16 @@ def compare(name, catalog):
     return None
 
 
+def deletefile(filename):
+    try:
+        if DRYRUN:
+            print("Deleting {file}".format(file=filename))
+        else:
+            os.remove(filename)
+    except:
+        raise IOError("Error deleting file: {file}".format(file=filename))
+
+
 def save(catalog):
     pass
 
@@ -69,7 +80,7 @@ def load(loadfile):
         raise IOError("Error reading catalog file")
 
 
-def scanandcopy(dir, catalog, dest, scandirs=False):
+def scanandcopy(dir, catalog, dest, scandirs=False, delete=False):
     for root, dirs, files in os.walk(dir):
         for f in files:
             target = compare(f, catalog)
@@ -79,6 +90,8 @@ def scanandcopy(dir, catalog, dest, scandirs=False):
                     print("Matched {file} copying to {dest}".format(file=f, dest=abs_dest))
                 else:
                     shutil.copy(os.path.join(root, f), abs_dest)
+                if delete:
+                    deletefile(os.path.join(root, f))
 
 def main():
     global DRYRUN
@@ -87,8 +100,9 @@ def main():
     source_dir = args['--source']
     dest_dir = args['--destination']
     DRYRUN = args['--dryrun']
+    delete = args['--delete']
     catalog = load(catalog_file)
-    scanandcopy(source_dir, catalog, dest_dir)
+    scanandcopy(source_dir, catalog, dest_dir, delete=delete)
 
 
 if __name__ == "__main__":
