@@ -85,11 +85,19 @@ def scanandcopy(dir, catalog, dest, scandirs=False, delete=False):
         for f in files:
             target = compare(f, catalog)
             if target:
-                abs_dest = os.path.join(dest, target, f)
+                dest_folder = os.path.join(dest, target)
+                abs_dest = os.path.join(dest_folder f)
                 if DRYRUN:
                     print("Matched {file} copying to {dest}".format(file=f, dest=abs_dest))
                 else:
+                    # See if we need to make the final folder
+                    if not path.exists(dest_folder):
+                        os.mkdir(dest_folder)
                     shutil.copy(os.path.join(root, f), abs_dest)
+                    # Double check it actually got copied
+                    if not os.path.exists(abs_dest):
+                        print("Failed to copy {file}".format(file=f))
+                        delete = False
                 if delete:
                     deletefile(os.path.join(root, f))
 
