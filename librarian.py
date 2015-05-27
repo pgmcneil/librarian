@@ -92,7 +92,10 @@ def scanandcopy(dir, catalog, dest, scandirs=False, delete=False):
                 else:
                     # See if we need to make the final folder
                     if not path.exists(dest_folder):
-                        os.mkdir(dest_folder)
+                        if DRYRUN:
+                            print("Making {folder}".format(folder=dest_folder))
+                        else:
+                            os.mkdir(dest_folder)
                     shutil.copy(os.path.join(root, f), abs_dest)
                     # Double check it actually got copied
                     if not os.path.exists(abs_dest):
