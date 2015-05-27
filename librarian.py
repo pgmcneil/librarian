@@ -7,6 +7,7 @@ Options:
     --catalog=<catalog>     Catalog file [Default: catalog.yaml]
     --dryrun                Don't actually do anything
     --delete                Delete the original after copying
+    --checksum              Run checksum against src/dest files, implies --delete
     -h --help               Show help
 """
 
@@ -15,6 +16,7 @@ import yaml
 import re
 import shutil
 import os
+import hashlib
 
 # Globals
 DRYRUN = False
@@ -67,6 +69,28 @@ def deletefile(filename):
         raise IOError("Error deleting file: {file}".format(file=filename))
 
 
+def calchash(filename):
+    """Run a sha1 of the file and return the result"""
+    sha = hashlib.sha1()
+    with open(filename, 'rb') as f:
+        sha.update(f.read())
+    return sha
+
+
+def checkfile(filename, source=None):
+    """Checks to see if the destination exists
+        If a source file is passed in, run a checksum"""
+    if source:
+        # Let's check some sums
+        if os.path.exists(filename) and os.path.exists(source):
+            src_sha = calchash(source)
+            dest_sha = calchash(filename)
+            if DRYRUN:
+                print("{src} hash {src_sha}. {dest} hash {dest_sha}".format(src=source, dest=filename, src_sha=src_sha.hexdigest(), dest_sha=dest_sha.hexdigest()))
+            return src_sha.digest() == dest_sha.digest()
+    else:
+        return os.path.exists(filename)
+
 def save(catalog):
     pass
 
@@ -80,27 +104,32 @@ def load(loadfile):
         raise IOError("Error reading catalog file")
 
 
-def scanandcopy(dir, catalog, dest, scandirs=False, delete=False):
+def scanandcopy(dir, catalog, dest, scandirs=False,
+                delete=False, checksum=False):
     for root, dirs, files in os.walk(dir):
         for f in files:
             target = compare(f, catalog)
             if target:
                 dest_folder = os.path.join(dest, target)
-                abs_dest = os.path.join(dest_folder f)
+                abs_dest = os.path.join(dest_folder, f)
+                abs_src = os.path.join(root, f)
+                # See if we need to make the final folder
+                if not os.path.exists(dest_folder):
+                    if DRYRUN:
+                        print("Making {folder}".format(folder=dest_folder))
+                    else:
+                        os.mkdir(dest_folder)
+
                 if DRYRUN:
                     print("Matched {file} copying to {dest}".format(file=f, dest=abs_dest))
                 else:
-                    # See if we need to make the final folder
-                    if not path.exists(dest_folder):
-                        if DRYRUN:
-                            print("Making {folder}".format(folder=dest_folder))
-                        else:
-                            os.mkdir(dest_folder)
-                    shutil.copy(os.path.join(root, f), abs_dest)
-                    # Double check it actually got copied
-                    if not os.path.exists(abs_dest):
-                        print("Failed to copy {file}".format(file=f))
-                        delete = False
+                    shutil.copy(abs_src, abs_dest)
+
+                # Double check it actually got copied
+                srcfile = abs_src if checksum else None
+                if not checkfile(abs_dest, srcfile):
+                    print("Failed to copy {file}".format(file=f))
+                    delete = False
                 if delete:
                     deletefile(os.path.join(root, f))
 
@@ -112,8 +141,9 @@ def main():
     dest_dir = args['--destination']
     DRYRUN = args['--dryrun']
     delete = args['--delete']
+    checksum = args['--checksum']
     catalog = load(catalog_file)
-    scanandcopy(source_dir, catalog, dest_dir, delete=delete)
+    scanandcopy(source_dir, catalog, dest_dir, delete=delete, checksum=checksum)
 
 
 if __name__ == "__main__":
